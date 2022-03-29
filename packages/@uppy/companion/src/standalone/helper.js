@@ -70,6 +70,10 @@ const getConfigFromEnv = () => {
           secret: process.env.COMPANION_UNSPLASH_SECRET,
         },
       },
+      dynamoDB: {
+        region: process.env.COMPANION_AWS_DYNAMO_REGION,
+        tableName: process.env.COMPANION_AWS_TABLE_NAME,
+      },
       s3: {
         key: process.env.COMPANION_AWS_KEY,
         secret: getSecret('COMPANION_AWS_SECRET'),

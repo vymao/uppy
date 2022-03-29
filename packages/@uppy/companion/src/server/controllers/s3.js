@@ -83,29 +83,32 @@ module.exports = function s3 (config) {
   function createMultipartUpload (req, res, next) {
     // @ts-ignore The `companion` property is added by middleware before reaching here.
     const client = req.companion.s3Client
-    const key = config.getKey(req, req.body.filename, req.body.metadata || {})
     const { type, metadata } = req.body
-    if (typeof key !== 'string') {
-      return res.status(500).json({ error: 's3: filename returned from `getKey` must be a string' })
-    }
+
     if (typeof type !== 'string') {
       return res.status(400).json({ error: 's3: content type must be a string' })
     }
 
-    client.createMultipartUpload({
-      Bucket: config.bucket,
-      Key: key,
-      ACL: config.acl,
-      ContentType: type,
-      Metadata: metadata,
-    }, (err, data) => {
-      if (err) {
-        next(err)
-        return
+    config.getKey(req, req.body.filename, req.body.metadata || {}).then((key) => {
+      if (typeof key !== 'string') {
+        return res.status(500).json({ error: 's3: filename returned from `getKey` must be a string' })
       }
-      res.json({
-        key: data.Key,
-        uploadId: data.UploadId,
+      
+      client.createMultipartUpload({
+        Bucket: config.bucket,
+        Key: key,
+        // ACL: config.acl,
+        ContentType: type,
+        Metadata: metadata,
+      }, (err, data) => {
+        if (err) {
+          next(err)
+          return
+        }
+        res.json({
+          key: data.Key,
+          uploadId: data.UploadId,
+        })
       })
     })
   }

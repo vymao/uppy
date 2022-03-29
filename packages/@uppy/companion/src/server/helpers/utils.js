@@ -1,4 +1,76 @@
 const crypto = require('crypto')
+const { UUIDBaseX } = require('uuid-basex')
+const { GetItemCommand } = require("@aws-sdk/client-dynamodb");
+
+/**
+ *
+ * @returns {string}
+ */
+ exports.generateRandomBase64URL = () => {
+  const uuidx = UUIDBaseX.urlSafe()
+  const encodedUUID = uuidx.v4()
+  return encodedUUID
+}
+
+/**
+ *
+ * @param {string} tableName
+ * @param {object} dynamoClient
+ * @returns {Promise}
+ */
+async function checkDynamoID (dynamoClient, tableName) {
+  function runCheck(client, params, id) {
+    return new Promise(resolve => {
+      client.getItem(params, function(err, data) {
+        if (err) {
+          console.log("Error",  err);
+        } else {
+          if (data.Item === undefined) {
+            console.log("Key available: " + id)
+            resolve(id)
+          } else {
+            console.log("Key taken: " + id)
+          }
+        }
+      });
+    });
+  }
+
+  for (let i = 0; i < 10; i++) {
+    const randomID = exports.generateRandomBase64URL()
+    const dynamoParams = {
+      TableName: tableName, //TABLE_NAME
+      Key: {
+        'videoID': { S: randomID },
+      }
+    }
+
+    const result = await runCheck(dynamoClient, dynamoParams, randomID)
+    if (result !== undefined) {
+      return randomID
+    }
+  }
+
+  return ""
+}
+
+/**
+ *
+ * @param {string} tableName
+ * @param {any} dynamoClient
+ * @returns {function}
+ */
+ exports.getS3FileName = (dynamoClient, tableName) => {
+  const getS3FileName = async (req, filename, metadata) => {
+    const contentDirectoryPreset = "content"
+    const userID = metadata.userID  
+    const availableID = await checkDynamoID(dynamoClient, tableName)
+    
+    return contentDirectoryPreset + "/" + userID + "/" + availableID
+  }
+
+  return getS3FileName
+}
 
 /**
  *

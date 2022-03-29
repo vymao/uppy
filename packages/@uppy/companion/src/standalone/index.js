@@ -12,7 +12,8 @@ const redis = require('../server/redis')
 const companion = require('../companion')
 const helper = require('./helper')
 const middlewares = require('../server/middlewares')
-const { getURLBuilder } = require('../server/helpers/utils')
+const dynamoClient = require('../server/dynamo-client')
+const { getURLBuilder, getS3FileName  } = require('../server/helpers/utils')
 
 /**
  * Configures an Express app for running Companion standalone
@@ -41,6 +42,9 @@ module.exports = function server (inputCompanionOptions = {}) {
   } else {
     app.use(router)
   }
+
+  const dynamo = dynamoClient(companionOptions)
+  companionOptions.providerOptions.s3.getKey = getS3FileName(dynamo, companionOptions.providerOptions.dynamoDB.tableName)
 
   // Query string keys whose values should not end up in logging output.
   const sensitiveKeys = new Set(['access_token', 'uppyAuthToken'])
